@@ -1,38 +1,49 @@
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.datasets import MNIST
 
+from tqdm import tqdm
+
 from model import cnn
 
 def train(model, dataloader, device):
-    print('train')
     # model = model.train()
-    for epoch in range(2):
-        for iiter, (x, y) in enumerate(dataloader, 0):
+    num_epochs = 1
+    criterion=nn.CrossEntropyLoss()
 
-            # toCPU
-            x = x.to(device)
-            y = torch.eye(10)[y].to(device)
+    for epoch in range(num_epochs):
+        with torch.set_grad_enabled(True):
+            loss_sum=0
+            corrects=0
+            total=0
 
-            # 推定
-            y_ = model.forward(x) # y_.shape = (bs, 84)
+            with tqdm(total=len(dataloader), unit="batch") as pbar:
+                    pbar.set_description(f"Epoch[{epoch}/{num_epochs}]")
+                    for imgs,labels in dataloader:
+                        imgs, labels = imgs.to(device), labels.to(device)
+                        output=model.forward(imgs)
+                        loss=criterion(output,labels)
 
-            # loss: cross-entropy
-            eps = 1e-7
-            loss = -torch.mean(y*torch.log(y_+eps))
+                        opt.zero_grad()
+                        loss.backward()
+                        opt.step()
 
-            opt.zero_grad() # 勾配初期化
-            loss.backward() # backward (勾配計算)
-            opt.step() # パラメータの微小移動
+                        predicted = torch.argmax(output, dim = 1)
+                        corrects += (predicted == labels).sum()
+                        total += imgs.size(0)
 
-            # 100回に1回進捗を表示（なくてもよい）
-            if iiter%100==0:
-                print('%03d epoch, %05d, loss=%.5f' %
-                      (epoch, iiter, loss.item()))
+                        #loss関数で通してでてきたlossはCrossEntropyLossのreduction="mean"なので平均
+                        #batch sizeをかけることで、batch全体での合計を今までのloss_sumに足し合わせる
+                        loss_sum += loss*imgs.size(0)
+
+                        accuracy = corrects.item() / total
+                        running_loss = loss_sum/total
+                        pbar.set_postfix({"loss": running_loss.item(), "accuracy": accuracy })
+                        pbar.update(1)
 
 def test(model, dataloader, device):
-    print('test')
     total, tp = 0, 0
     for (x, label) in dataloader:
 
@@ -48,7 +59,7 @@ def test(model, dataloader, device):
         tp += (label_==label).sum().item()
 
     acc = tp/total
-    print('test accuracy = %.3f' % acc)
+    print('accuracy = %.3f' % acc)
 
 if __name__ == '__main__':
     # GPU or CPUの自動判別
