@@ -1,16 +1,17 @@
 import torch
 import torch.nn as nn
+from torchvision.models import resnet18
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from torchvision.datasets import MNIST
+from torchvision.datasets import CIFAR10
 
 from tqdm import tqdm
 
-from model import cnn
+# from model import cnn
 
 def train(model, dataloader, device):
     # model = model.train()
-    num_epochs = 1
+    num_epochs = 200
     criterion=nn.CrossEntropyLoss()
 
     for epoch in range(num_epochs):
@@ -34,8 +35,6 @@ def train(model, dataloader, device):
                         corrects += (predicted == labels).sum()
                         total += imgs.size(0)
 
-                        #loss関数で通してでてきたlossはCrossEntropyLossのreduction="mean"なので平均
-                        #batch sizeをかけることで、batch全体での合計を今までのloss_sumに足し合わせる
                         loss_sum += loss*imgs.size(0)
 
                         accuracy = corrects.item() / total
@@ -67,7 +66,9 @@ if __name__ == '__main__':
     print(device) # cpu
 
     # modelの定義
-    model = cnn().to(device)
+    # model = cnn().to(device)
+    model = resnet18(pretrained = False)
+    model.fc = nn.Linear(model.fc.in_features, 10)
     opt = torch.optim.Adam(model.parameters())
 
     # datasetの読み出し
@@ -76,9 +77,10 @@ if __name__ == '__main__':
         transforms.ToTensor(),
         transforms.Normalize((0.5,), (0.5,))
     ])
-    trainset = MNIST(root='./data', train=True, download=True, transform=transform)
+
+    trainset = CIFAR10(root='./data', train=True, download=True, transform=transform)
     trainloader = DataLoader(trainset, batch_size=bs, shuffle=True)
-    testset = MNIST(root='./data', train=False, download=True, transform=transform)
+    testset = CIFAR10(root='./data', train=False, download=True, transform=transform)
     testloader = DataLoader(testset, batch_size=bs, shuffle=False)
 
     train(model.train(), trainloader, device)
