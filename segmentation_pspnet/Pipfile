@@ -9,6 +9,7 @@ numpy = "*"
 torch = "*"
 matplotlib = "*"
 Pillow = "*"
+requests = "*"
 
 [dev-packages]
 
