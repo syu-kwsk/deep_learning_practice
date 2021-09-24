@@ -12,6 +12,7 @@ import torch.nn.init as init
 import torch.nn.functional as F
 import torch.optim as optim
 
+# 乱数固定
 torch.manual_seed(1234)
 np.random.seed(1234)
 random.seed(1234)
